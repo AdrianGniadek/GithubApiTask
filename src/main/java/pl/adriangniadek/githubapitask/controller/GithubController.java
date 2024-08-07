@@ -1,7 +1,7 @@
 package pl.adriangniadek.githubapitask.controller;
 
-import pl.adriangniadek.githubapitask.dto.ErrorResponse;
-import pl.adriangniadek.githubapitask.dto.RepositoryDto;
+import pl.adriangniadek.githubapitask.records.ErrorResponse;
+import pl.adriangniadek.githubapitask.records.Repository;
 import pl.adriangniadek.githubapitask.service.GithubService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,14 +21,14 @@ public class GithubController {
     }
 
     @GetMapping("/repositories/{username}")
-    public ResponseEntity<?> getUserRepositories(@PathVariable String username,
+    public ResponseEntity<Object> getUserRepositories(@PathVariable String username,
                                                  @RequestHeader(HttpHeaders.ACCEPT) String acceptHeader) {
         if (!"application/json".equals(acceptHeader)) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Only application/json is supported");
         }
 
         try {
-            List<RepositoryDto> repositories = githubService.getUserRepositories(username);
+            List<Repository> repositories = githubService.getUserRepositories(username);
             return ResponseEntity.ok(repositories);
         } catch (RuntimeException e) {
             ErrorResponse errorResponse = new ErrorResponse(HttpStatus.NOT_FOUND.value(), "User not found");

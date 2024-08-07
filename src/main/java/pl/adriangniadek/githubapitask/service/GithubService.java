@@ -1,7 +1,7 @@
 package pl.adriangniadek.githubapitask.service;
 
-import pl.adriangniadek.githubapitask.dto.BranchDto;
-import pl.adriangniadek.githubapitask.dto.RepositoryDto;
+import pl.adriangniadek.githubapitask.records.Branch;
+import pl.adriangniadek.githubapitask.records.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -12,16 +12,20 @@ import java.util.List;
 @Service
 public class GithubService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     private static final String GITHUB_API_URL = "https://api.github.com";
 
-    public List<RepositoryDto> getUserRepositories(String username) throws IllegalArgumentException {
+    public GithubService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    public List<Repository> getUserRepositories(String username) {
         String repositoriesUrl = UriComponentsBuilder.fromHttpUrl(GITHUB_API_URL)
                 .pathSegment("users", username, "repos")
                 .toUriString();
 
-        RepositoryDto[] repositories = restTemplate.getForObject(repositoriesUrl, RepositoryDto[].class);
+        Repository[] repositories = restTemplate.getForObject(repositoriesUrl, Repository[].class);
 
         if (repositories == null) {
             throw new IllegalArgumentException("User not found or has no repositories");
@@ -29,19 +33,21 @@ public class GithubService {
 
         return Arrays.stream(repositories)
                 .filter(repo -> !repo.isFork())
-                .map(repo -> {
-                    repo.setBranches(getBranches(username, repo.getRepositoryName()));
-                    return repo;
-                })
+                .map(repo -> new Repository(
+                        repo.repositoryName(),
+                        repo.owner(),
+                        false,
+                        getBranches(username, repo.repositoryName())
+                ))
                 .toList();
     }
 
-    private List<BranchDto> getBranches(String username, String repositoryName) {
+    private List<Branch> getBranches(String username, String repositoryName) {
         String branchesUrl = UriComponentsBuilder.fromHttpUrl(GITHUB_API_URL)
                 .pathSegment("repos", username, repositoryName, "branches")
                 .toUriString();
 
-        BranchDto[] branches = restTemplate.getForObject(branchesUrl, BranchDto[].class);
+        Branch[] branches = restTemplate.getForObject(branchesUrl, Branch[].class);
         return branches != null ? Arrays.asList(branches) : List.of();
     }
 }
